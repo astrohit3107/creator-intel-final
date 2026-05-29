@@ -29,9 +29,6 @@ export default function CompetitorAnalysis() {
   const [niche, setNiche] = useState('');
   const [loading, setLoading] = useState(false);
   const [swotData, setSWOTData] = useState<SWOTAnalysis | null>(null);
-  const [selectedCompetitor, setSelectedCompetitor] = useState<string | null>(
-    null
-  );
 
   const analyzeCompetitors = async () => {
     if (!niche || competitors.length === 0) {
