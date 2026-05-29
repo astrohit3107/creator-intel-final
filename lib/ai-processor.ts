@@ -1,11 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface AIRecommendation {
   category: string;
   title: string;
   description: string;
   priority: 'high' | 'medium' | 'low';
-  actionItems: string[];
+  actionItems?: string[];
 }
 
 interface AnalysisResult {
@@ -14,36 +14,24 @@ interface AnalysisResult {
   weaknesses: string[];
   recommendations: AIRecommendation[];
   nextSteps: string[];
-}
-
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 class AIProcessor {
   /**
-   * Analyze Instagram metrics and generate insights using Claude
+   * Analyze Instagram metrics and generate insights using Google Gemini
    */
   async analyzeInsights(metricsData: any): Promise<AnalysisResult> {
     const prompt = this.buildAnalysisPrompt(metricsData);
 
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
 
-      const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-      return this.parseAnalysisResponse(responseText);
+      return this.parseAnalysisResponse(text);
     } catch (error) {
-      console.error('Error analyzing insights with Claude:', error);
+      console.error('Error analyzing insights with Gemini:', error);
       throw error;
     }
   }
@@ -55,20 +43,12 @@ class AIProcessor {
     const prompt = this.buildStrategyPrompt(metricsData, pastAnalysis);
 
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 1500,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
 
-      const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-      return this.parseRecommendationsResponse(responseText);
+      return this.parseRecommendationsResponse(text);
     } catch (error) {
       console.error('Error generating content strategy:', error);
       throw error;
@@ -76,7 +56,7 @@ class AIProcessor {
   }
 
   /**
-   * Build the analysis prompt for Claude
+   * Build the analysis prompt for Gemini
    */
   private buildAnalysisPrompt(metricsData: any): string {
     return `You are an expert Instagram growth strategist and content analyst. Analyze the following creator's Instagram metrics and provide actionable insights.
@@ -101,36 +81,29 @@ ${i + 1}. "${post.caption?.substring(0, 50)}..."
   .join('\n')}
 
 Audience Demographics:
-- Top Cities: ${metricsData.audience_insights?.top_cities?.map((c: any) => `${c.label} (${c.percentage}%)`).join(', ')}
-- Top Countries: ${metricsData.audience_insights?.top_countries?.map((c: any) => `${c.label} (${c.percentage}%)`).join(', ')}
+- Top Cities: ${metricsData.audience_insights?.top_cities?.map((c: any) => \`\${c.label} (\${c.percentage}%)\`).join(', ')}
+- Top Countries: ${metricsData.audience_insights?.top_countries?.map((c: any) => \`\${c.label} (\${c.percentage}%)\`).join(', ')}
 
-Please provide:
-1. A summary of their current performance
-2. Key strengths in their content strategy
-3. Areas for improvement
-4. Specific, actionable recommendations (with priority levels: high/medium/low)
-5. Next immediate steps to take
-
-Format your response as a structured JSON object with the following schema:
+Please provide analysis in this EXACT JSON format:
 {
-  "summary": "string",
-  "strengths": ["string"],
-  "weaknesses": ["string"],
+  "summary": "A brief summary of their current performance",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "weaknesses": ["weakness 1", "weakness 2", "weakness 3"],
   "recommendations": [
     {
-      "category": "string",
-      "title": "string",
-      "description": "string",
-      "priority": "high|medium|low",
-      "actionItems": ["string"]
+      "category": "Category Name",
+      "title": "Recommendation Title",
+      "description": "Detailed description",
+      "priority": "high",
+      "actionItems": ["action 1", "action 2"]
     }
   ],
-  "nextSteps": ["string"]
+  "nextSteps": ["step 1", "step 2", "step 3"]
 }`;
   }
 
   /**
-   * Build the strategy prompt for Claude
+   * Build the strategy prompt for Gemini
    */
   private buildStrategyPrompt(metricsData: any, pastAnalysis?: string): string {
     return `You are an expert Instagram content strategist. Based on the following creator's metrics, generate specific content recommendations.
@@ -139,28 +112,30 @@ Current Metrics:
 - Followers: ${metricsData.followers_count?.toLocaleString()}
 - Engagement Rate: ${(metricsData.engagement_rate * 100).toFixed(2)}%
 - Average Reach: ${metricsData.reach?.toLocaleString()}
-${pastAnalysis ? `- Previous Analysis: ${pastAnalysis}` : ''}
+${pastAnalysis ? \`- Previous Analysis: \${pastAnalysis}\` : ''}
 
 Top Performing Content:
-${metricsData.top_posts?.map((post: any) => `- ${post.media_type}: ${post.like_count + post.comments_count} total engagements`).join('\n')}
+${metricsData.top_posts?.map((post: any) => \`- \${post.media_type}: \${post.like_count + post.comments_count} total engagements\`).join('\n')}
 
 Audience Focus:
 - Primary Audience: ${metricsData.audience_insights?.top_countries?.slice(0, 3).map((c: any) => c.label).join(', ')}
 
-Generate 5 specific, actionable content recommendations with the following JSON structure:
+Generate 5 specific, actionable content recommendations in this EXACT JSON format:
 [
   {
-    "category": "string (e.g., 'Posting Frequency', 'Content Type', 'Caption Strategy')",
-    "title": "string",
-    "description": "detailed recommendation",
-    "priority": "high|medium|low",
-    "actionItems": ["specific action 1", "specific action 2"]
+    "category": "Category (e.g., 'Posting Frequency', 'Content Type')",
+    "title": "Recommendation Title",
+    "description": "Detailed, specific recommendation",
+    "priority": "high",
+    "actionItems": ["specific action 1", "specific action 2", "specific action 3"]
   }
-]`;
+]
+
+Make sure it's valid JSON array. Be specific and actionable.`;
   }
 
   /**
-   * Parse Claude's analysis response
+   * Parse Gemini's analysis response
    */
   private parseAnalysisResponse(response: string): AnalysisResult {
     try {
@@ -192,7 +167,7 @@ Generate 5 specific, actionable content recommendations with the following JSON 
   }
 
   /**
-   * Parse Claude's recommendations response
+   * Parse Gemini's recommendations response
    */
   private parseRecommendationsResponse(response: string): AIRecommendation[] {
     try {
@@ -220,24 +195,16 @@ Generate 5 specific, actionable content recommendations with the following JSON 
   }
 
   /**
-   * Analyze competitive metrics using Claude
+   * Analyze competitive metrics using Gemini
    */
   async analyzeCompetitiveMetrics(prompt: string): Promise<any> {
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 1500,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
-
-      const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-      return this.parseJSONResponse(responseText);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      return this.parseJSONResponse(text);
     } catch (error) {
       console.error('Error analyzing competitive metrics:', error);
       return {
@@ -250,24 +217,16 @@ Generate 5 specific, actionable content recommendations with the following JSON 
   }
 
   /**
-   * Analyze benchmarks using Claude
+   * Analyze benchmarks using Gemini
    */
   async analyzeBenchmarks(prompt: string): Promise<any> {
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 1200,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
-
-      const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-      return this.parseJSONResponse(responseText);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      return this.parseJSONResponse(text);
     } catch (error) {
       console.error('Error analyzing benchmarks:', error);
       return {};
@@ -275,24 +234,16 @@ Generate 5 specific, actionable content recommendations with the following JSON 
   }
 
   /**
-   * Generate content plan using Claude
+   * Generate content plan using Gemini
    */
   async generateContentPlan(prompt: string): Promise<any[]> {
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
-
-      const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-      const parsed = this.parseJSONResponse(responseText);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const parsed = this.parseJSONResponse(text);
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       console.error('Error generating content plan:', error);
@@ -301,24 +252,16 @@ Generate 5 specific, actionable content recommendations with the following JSON 
   }
 
   /**
-   * Suggest optimal posting times using Claude
+   * Suggest optimal posting times using Gemini
    */
   async suggestPostingTimes(prompt: string): Promise<string[]> {
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 500,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
-
-      const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-      const parsed = this.parseJSONResponse(responseText);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const parsed = this.parseJSONResponse(text);
       return Array.isArray(parsed) ? parsed : ['09:00', '14:00', '20:00'];
     } catch (error) {
       console.error('Error suggesting posting times:', error);
@@ -327,7 +270,7 @@ Generate 5 specific, actionable content recommendations with the following JSON 
   }
 
   /**
-   * Parse generic JSON response from Claude
+   * Parse generic JSON response from Gemini
    */
   private parseJSONResponse(response: string): any {
     try {
@@ -351,3 +294,5 @@ Generate 5 specific, actionable content recommendations with the following JSON 
 }
 
 export default new AIProcessor();
+```
+
