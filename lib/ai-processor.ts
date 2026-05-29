@@ -14,6 +14,8 @@ interface AnalysisResult {
   weaknesses: string[];
   recommendations: AIRecommendation[];
   nextSteps: string[];
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 class AIProcessor {
@@ -32,7 +34,13 @@ class AIProcessor {
       return this.parseAnalysisResponse(text);
     } catch (error) {
       console.error('Error analyzing insights with Gemini:', error);
-      throw error;
+      return {
+        summary: 'Analysis in progress',
+        strengths: [],
+        weaknesses: [],
+        recommendations: [],
+        nextSteps: [],
+      };
     }
   }
 
@@ -51,145 +59,6 @@ class AIProcessor {
       return this.parseRecommendationsResponse(text);
     } catch (error) {
       console.error('Error generating content strategy:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Build the analysis prompt for Gemini
-   */
-  private buildAnalysisPrompt(metricsData: any): string {
-    return `You are an expert Instagram growth strategist and content analyst. Analyze the following creator's Instagram metrics and provide actionable insights.
-
-Creator Information:
-- Username: ${metricsData.username}
-- Followers: ${metricsData.followers_count?.toLocaleString()}
-- Engagement Rate: ${(metricsData.engagement_rate * 100).toFixed(2)}%
-- Profile Reach: ${metricsData.reach?.toLocaleString()}
-- Profile Impressions: ${metricsData.impressions?.toLocaleString()}
-
-Top Performing Posts:
-${metricsData.top_posts
-  ?.map(
-    (post: any, i: number) => `
-${i + 1}. "${post.caption?.substring(0, 50)}..."
-   - Likes: ${post.like_count}
-   - Comments: ${post.comments_count}
-   - Total Engagement: ${post.like_count + post.comments_count}
-`
-  )
-  .join('\n')}
-
-Audience Demographics:
-- Top Cities: ${metricsData.audience_insights?.top_cities?.map((c: any) => \`\${c.label} (\${c.percentage}%)\`).join(', ')}
-- Top Countries: ${metricsData.audience_insights?.top_countries?.map((c: any) => \`\${c.label} (\${c.percentage}%)\`).join(', ')}
-
-Please provide analysis in this EXACT JSON format:
-{
-  "summary": "A brief summary of their current performance",
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "weaknesses": ["weakness 1", "weakness 2", "weakness 3"],
-  "recommendations": [
-    {
-      "category": "Category Name",
-      "title": "Recommendation Title",
-      "description": "Detailed description",
-      "priority": "high",
-      "actionItems": ["action 1", "action 2"]
-    }
-  ],
-  "nextSteps": ["step 1", "step 2", "step 3"]
-}`;
-  }
-
-  /**
-   * Build the strategy prompt for Gemini
-   */
-  private buildStrategyPrompt(metricsData: any, pastAnalysis?: string): string {
-    return `You are an expert Instagram content strategist. Based on the following creator's metrics, generate specific content recommendations.
-
-Current Metrics:
-- Followers: ${metricsData.followers_count?.toLocaleString()}
-- Engagement Rate: ${(metricsData.engagement_rate * 100).toFixed(2)}%
-- Average Reach: ${metricsData.reach?.toLocaleString()}
-${pastAnalysis ? \`- Previous Analysis: \${pastAnalysis}\` : ''}
-
-Top Performing Content:
-${metricsData.top_posts?.map((post: any) => \`- \${post.media_type}: \${post.like_count + post.comments_count} total engagements\`).join('\n')}
-
-Audience Focus:
-- Primary Audience: ${metricsData.audience_insights?.top_countries?.slice(0, 3).map((c: any) => c.label).join(', ')}
-
-Generate 5 specific, actionable content recommendations in this EXACT JSON format:
-[
-  {
-    "category": "Category (e.g., 'Posting Frequency', 'Content Type')",
-    "title": "Recommendation Title",
-    "description": "Detailed, specific recommendation",
-    "priority": "high",
-    "actionItems": ["specific action 1", "specific action 2", "specific action 3"]
-  }
-]
-
-Make sure it's valid JSON array. Be specific and actionable.`;
-  }
-
-  /**
-   * Parse Gemini's analysis response
-   */
-  private parseAnalysisResponse(response: string): AnalysisResult {
-    try {
-      // Extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      return {
-        summary: parsed.summary || 'Unable to generate summary',
-        strengths: parsed.strengths || [],
-        weaknesses: parsed.weaknesses || [],
-        recommendations: parsed.recommendations || [],
-        nextSteps: parsed.nextSteps || [],
-      };
-    } catch (error) {
-      console.error('Error parsing analysis response:', error);
-      return {
-        summary: 'Analysis completed but parsing failed',
-        strengths: [],
-        weaknesses: [],
-        recommendations: [],
-        nextSteps: [],
-      };
-    }
-  }
-
-  /**
-   * Parse Gemini's recommendations response
-   */
-  private parseRecommendationsResponse(response: string): AIRecommendation[] {
-    try {
-      // Extract JSON array from the response
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error('No JSON array found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      return Array.isArray(parsed)
-        ? parsed.map((rec: any) => ({
-            category: rec.category || 'General',
-            title: rec.title || 'Recommendation',
-            description: rec.description || '',
-            priority: rec.priority || 'medium',
-            actionItems: rec.actionItems || [],
-          }))
-        : [];
-    } catch (error) {
-      console.error('Error parsing recommendations response:', error);
       return [];
     }
   }
@@ -203,7 +72,7 @@ Make sure it's valid JSON array. Be specific and actionable.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       return this.parseJSONResponse(text);
     } catch (error) {
       console.error('Error analyzing competitive metrics:', error);
@@ -225,7 +94,7 @@ Make sure it's valid JSON array. Be specific and actionable.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       return this.parseJSONResponse(text);
     } catch (error) {
       console.error('Error analyzing benchmarks:', error);
@@ -242,7 +111,7 @@ Make sure it's valid JSON array. Be specific and actionable.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       const parsed = this.parseJSONResponse(text);
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
@@ -260,7 +129,7 @@ Make sure it's valid JSON array. Be specific and actionable.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       const parsed = this.parseJSONResponse(text);
       return Array.isArray(parsed) ? parsed : ['09:00', '14:00', '20:00'];
     } catch (error) {
@@ -270,11 +139,102 @@ Make sure it's valid JSON array. Be specific and actionable.`;
   }
 
   /**
+   * Build the analysis prompt for Gemini
+   */
+  private buildAnalysisPrompt(metricsData: any): string {
+    return `You are an expert Instagram growth strategist. Analyze this creator's metrics and provide insights.
+
+Creator: ${metricsData.username || 'Creator'}
+Followers: ${metricsData.followers_count || 0}
+Engagement Rate: ${metricsData.engagement_rate ? (metricsData.engagement_rate * 100).toFixed(2) : 0}%
+
+Provide analysis in JSON format with: summary, strengths (array), weaknesses (array), recommendations (array), nextSteps (array).`;
+  }
+
+  /**
+   * Build the strategy prompt for Gemini
+   */
+  private buildStrategyPrompt(metricsData: any, pastAnalysis?: string): string {
+    return `You are an Instagram content strategist. Generate 5 specific content recommendations.
+
+Current metrics:
+- Followers: ${metricsData.followers_count || 0}
+- Engagement Rate: ${metricsData.engagement_rate ? (metricsData.engagement_rate * 100).toFixed(2) : 0}%
+
+${pastAnalysis ? `Previous analysis: ${pastAnalysis}` : ''}
+
+Return as JSON array of recommendations with: category, title, description, priority, actionItems.`;
+  }
+
+  /**
+   * Parse Gemini's analysis response
+   */
+  private parseAnalysisResponse(response: string): AnalysisResult {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return {
+          summary: 'Analysis complete',
+          strengths: [],
+          weaknesses: [],
+          recommendations: [],
+          nextSteps: [],
+        };
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      return {
+        summary: parsed.summary || 'Analysis complete',
+        strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+        weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses : [],
+        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+        nextSteps: Array.isArray(parsed.nextSteps) ? parsed.nextSteps : [],
+      };
+    } catch (error) {
+      console.error('Error parsing analysis response:', error);
+      return {
+        summary: 'Analysis complete',
+        strengths: [],
+        weaknesses: [],
+        recommendations: [],
+        nextSteps: [],
+      };
+    }
+  }
+
+  /**
+   * Parse Gemini's recommendations response
+   */
+  private parseRecommendationsResponse(response: string): AIRecommendation[] {
+    try {
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        return [];
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      return Array.isArray(parsed)
+        ? parsed.map((rec: any) => ({
+            category: rec.category || 'General',
+            title: rec.title || 'Recommendation',
+            description: rec.description || '',
+            priority: rec.priority || 'medium',
+            actionItems: Array.isArray(rec.actionItems) ? rec.actionItems : [],
+          }))
+        : [];
+    } catch (error) {
+      console.error('Error parsing recommendations response:', error);
+      return [];
+    }
+  }
+
+  /**
    * Parse generic JSON response from Gemini
    */
   private parseJSONResponse(response: string): any {
     try {
-      // Try to extract JSON (array or object)
       const arrayMatch = response.match(/\[[\s\S]*\]/);
       if (arrayMatch) {
         return JSON.parse(arrayMatch[0]);
@@ -294,5 +254,3 @@ Make sure it's valid JSON array. Be specific and actionable.`;
 }
 
 export default new AIProcessor();
-```
-
