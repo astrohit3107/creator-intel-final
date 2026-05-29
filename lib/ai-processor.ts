@@ -83,8 +83,8 @@ ${i + 1}. "${post.caption?.substring(0, 50)}..."
   .join('\n')}
 
 Audience Demographics:
-- Top Cities: ${metricsData.audience_insights?.top_cities?.map((c: any) => \`\${c.label} (\${c.percentage}%)\`).join(', ')}
-- Top Countries: ${metricsData.audience_insights?.top_countries?.map((c: any) => \`\${c.label} (\${c.percentage}%)\`).join(', ')}
+- Top Cities: ${metricsData.audience_insights?.top_cities?.map((c: any) => c.label + ' (' + c.percentage + '%)').join(', ')}
+- Top Countries: ${metricsData.audience_insights?.top_countries?.map((c: any) => c.label + ' (' + c.percentage + '%)').join(', ')}
 
 Please provide analysis in this EXACT JSON format:
 {
