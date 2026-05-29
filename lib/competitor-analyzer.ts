@@ -26,12 +26,6 @@ interface CompetitiveAnalysis {
 }
 
 class CompetitorAnalyzer {
-  private accessToken: string;
-
-  constructor() {
-    this.accessToken = process.env.INSTAGRAM_ACCESS_TOKEN || '';
-  }
-
   /**
    * Fetch competitor metrics by username
    */
