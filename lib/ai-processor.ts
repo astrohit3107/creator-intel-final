@@ -14,6 +14,8 @@ interface AnalysisResult {
   weaknesses: string[];
   recommendations: AIRecommendation[];
   nextSteps: string[];
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 class AIProcessor {
