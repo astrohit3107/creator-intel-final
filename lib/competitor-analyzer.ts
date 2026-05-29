@@ -25,9 +25,6 @@ interface CompetitiveAnalysis {
   };
 }
 
-const INSTAGRAM_API_VERSION = 'v19.0';
-const INSTAGRAM_API_BASE = `https://graph.instagram.com/${INSTAGRAM_API_VERSION}`;
-
 class CompetitorAnalyzer {
   private accessToken: string;
 
