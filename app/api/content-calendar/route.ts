@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const { action, creatorId, plan, updates, planId } = body;
 
     if (!creatorId) {
-      return NextRequest.json(
+      return NextResponse.json(
         { error: 'Missing required field: creatorId' },
         { status: 400 }
       );
