@@ -41,18 +41,6 @@ class CompetitorAnalyzer {
    */
   async getCompetitorMetrics(username: string): Promise<CompetitorMetrics> {
     try {
-      // Search for user by username
-      const searchResponse = await axios.get(
-        `${INSTAGRAM_API_BASE}/ig_hashtag_search`,
-        {
-          params: {
-            user_id: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID,
-            fields: 'id,name',
-            access_token: this.accessToken,
-          },
-        }
-      );
-
       // Note: Direct user search by username requires additional permissions
       // This is a simplified version - in production, you might need:
       // 1. Additional API permissions
