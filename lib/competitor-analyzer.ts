@@ -1,4 +1,3 @@
-import axios from 'axios';
 import aiProcessor from './ai-processor';
 
 interface CompetitorMetrics {
