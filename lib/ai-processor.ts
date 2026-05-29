@@ -114,10 +114,10 @@ Current Metrics:
 - Followers: ${metricsData.followers_count?.toLocaleString()}
 - Engagement Rate: ${(metricsData.engagement_rate * 100).toFixed(2)}%
 - Average Reach: ${metricsData.reach?.toLocaleString()}
-${pastAnalysis ? \`- Previous Analysis: \${pastAnalysis}\` : ''}
+${pastAnalysis ? '- Previous Analysis: ' + pastAnalysis : ''}
 
 Top Performing Content:
-${metricsData.top_posts?.map((post: any) => \`- \${post.media_type}: \${post.like_count + post.comments_count} total engagements\`).join('\n')}
+${metricsData.top_posts?.map((post: any) => '- ' + post.media_type + ': ' + (post.like_count + post.comments_count) + ' total engagements').join('\n')}
 
 Audience Focus:
 - Primary Audience: ${metricsData.audience_insights?.top_countries?.slice(0, 3).map((c: any) => c.label).join(', ')}
