@@ -296,5 +296,4 @@ Make sure it's valid JSON array. Be specific and actionable.`;
 }
 
 export default new AIProcessor();
-```
 
