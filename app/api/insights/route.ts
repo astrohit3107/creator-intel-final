@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import instagramAPI from '@/lib/instagram-api';
 import aiProcessor from '@/lib/ai-processor';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Step 1: Check environment variables
     console.log('=== DIAGNOSTICS START ===');
