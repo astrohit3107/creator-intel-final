@@ -23,7 +23,7 @@ export async function GET() {
     // Step 2: Test Supabase connection
     console.log('Step 2: Testing Supabase connection...');
     try {
-      const { data: testData, error: testError } = await supabaseAdmin
+      const { error: testError } = await supabaseAdmin
         .from('creators')
         .select('count(*)', { count: 'exact', head: true });
       
